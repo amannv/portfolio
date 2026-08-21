@@ -31,6 +31,10 @@ const siteConfig = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
 
+  alternates: {
+    canonical: "/"
+  },
+
   title: {
     default: siteConfig.title,
     template: "%s | Aman Verma",
