@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/next";
 import VisitorTracker from "@/components/VisitorTracker";
+import { SITE_URL } from "@/lib/siteConfig";
 
 const instrumentSerifHeading = Instrument_Serif({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ const siteConfig = {
   title: "Aman Verma | Full Stack Engineer",
   description:
     "A Full Stack Developer building modern web applications with Next.js, React, Node.js, TypeScript, PostgreSQL, and WebSockets. Explore my projects, technical blogs, and open-source work.",
-  url: "https://amannv.vercel.app",
+  url: SITE_URL,
   image: "/og-hero.jpg",
 };
 

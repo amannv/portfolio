@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { BlogFrontmatter } from "./mdx";
-
-const siteUrl = "https://amannv.vercel.app";
+import { SITE_URL } from "./siteConfig";
 
 export function generateBlogMetadata(
   slug: string,
   frontmatter: BlogFrontmatter,
 ): Metadata {
-  const url = `${siteUrl}/blog/${slug}`;
+  const url = `${SITE_URL}/blog/${slug}`;
 
   return {
     title: frontmatter.title,
@@ -35,7 +34,7 @@ export function generateBlogMetadata(
     openGraph: {
       type: "article",
 
-      url: `${siteUrl}/blog/${slug}`,
+      url: `${SITE_URL}/blog/${slug}`,
 
       title: frontmatter.title,
 

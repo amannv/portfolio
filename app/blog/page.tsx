@@ -7,6 +7,7 @@ import Footer from "@/app/sections/Footer";
 import PageHeading from "@/components/PageHeading";
 import Divider from "@/components/Divider";
 import { cn } from "@/lib/utils";
+import { SITE_URL } from "@/lib/siteConfig";
 
 export const metadata: Metadata = {
   title: "Blogs",
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "Blogs | Aman Verma",
     description: "Thoughts, tutorials, and lessons from building software.",
-    url: "https://amannv.vercel.app/blog",
+    url: `${SITE_URL}/blog`,
     images: [
       {
         url: "/og-blogs.jpg",

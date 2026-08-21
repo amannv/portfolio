@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAllBlogs } from "@/lib/mdx";
-
-const SITE_URL = "https://portfolio-v1-henna-eta.vercel.app";
+import { SITE_URL } from "@/lib/siteConfig";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const blogs = await getAllBlogs();

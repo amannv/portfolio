@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import Footer from "@/app/sections/Footer";
 import PageHeading from "@/components/PageHeading";
 import Divider from "@/components/Divider";
+import { SITE_URL } from "@/lib/siteConfig";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     title: "Projects | Aman Verma",
     description:
       "Explore my collection of full-stack applications, AI tools, and developer projects.",
-    url: "https://amannv.vercel.app/projects",
+    url: `${SITE_URL}/projects`,
     images: [
       {
         url: "/og-projects.jpg",
