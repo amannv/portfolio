@@ -62,11 +62,11 @@ const projectsList: ProjectCardProps[] = [
     title: "CanvasFlow",
     description:
       "CanvasFlow is a collaborative whiteboard that enables teams to draw, brainstorm, and collaborate in real time.",
-    image: "/canvasflow.jpg",
+    image: "/canvas.jpg",
     tags: ["React.JS", "TypeScript", "TurboRepo", "Express.JS", "WebSockets"],
+    liveLink: "https://canvas-flow-web.vercel.app",
     githubLink: "https://github.com/amannv/CanvasFlow",
-    isLive: false,
-    isBuilding: true,
+    isLive: true,
   },
   {
     title: "Textly",
