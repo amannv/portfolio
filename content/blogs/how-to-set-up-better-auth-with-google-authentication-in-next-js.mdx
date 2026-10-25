@@ -1,0 +1,444 @@
+---
+title: "How to Set Up Better Auth with Google Authentication in Next.js"
+slug: "how-to-set-up-better-auth-with-google-authentication-in-next-js"
+image: "https://miro.medium.com/v2/resize:fit:1400/format:webp/1*DE1ZWk8GBTbgWxYAsOG1SQ.png"
+publishedAt: "2026-10-25"
+description: "A step-by-step guide to setting up Better Auth with Google sign-in in a Next.js application, including database integration, session management, and protected routes."
+readingTime: "10 min read"
+tags:
+  - Better Auth
+  - Authentication
+  - Google OAuth
+  - Next.js
+  - React
+  - Drizzle ORM
+---
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*DE1ZWk8GBTbgWxYAsOG1SQ.png)
+
+Hello everyone! So today, we’re gonna see how we can implement authentication with **Better Auth using Google** in a straightforward way. As I’m implementing this for the first time, I thought, why not write a blog about it? This will help me understand it better.
+
+So, let’s get started!
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*MUbnf25hU8cxZi0PNMWiWw.png)
+
+## Let’s Understand Why We Use Better Auth Instead of Writing the Whole OAuth Flow Ourselves?
+
+The simple answer is that you can implement OAuth yourself, but it’s very complicated and time-consuming. So, it’s better to stick to an external library like **Better Auth** so you can implement authentication quickly and focus on the **core part of your project**.
+
+### Now, let’s start with the setup process.
+
+Below, I’m going to write the steps that will help you with the setup.
+
+### **1.** Install Better Auth in Your Project
+
+Install Better Auth in your project by running this command:
+
+```
+npm install better-auth
+```
+
+### 2. Create an `.env` File
+
+Create an `.env` file in the root of your project and add these credentials.
+
+```
+BETTER_AUTH_SECRET=your-generated-secret
+BETTER_AUTH_URL=http://localhost:3000
+DATABASE_URL=your-existing-postgres-connection-string
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+You can generate a secure **Better Auth secret** by running this command:
+
+```
+openssl rand -base64 32
+```
+
+Now, we need to create a project in the **Google Cloud Console** to get the Google Client ID and Google Client Secret.
+
+Google needs to know which application is requesting the sign-in and where to redirect the user after signing in.
+
+### 3. Create a Project in Google Cloud Console
+
+Go to the **Google Cloud Console** and log in.
+
+Then, search for **OAuth consent screen** and click on it.
+
+Click on **Create New Project**, enter your project name, add your support email, and select your target audience.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*W6pqJ-MxaAM-kiJijk5KGw.png)
+
+Next, create the OAuth client and select the app type as **Web application**.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*-4ykVSJTrBqhXyg3dvlefQ.png)
+
+For local development, add the following URLs:
+
+*   Authorized JavaScript origin: `[http://localhost:3000](http://localhost:3000)`
+*   Authorized redirect URI: `[http://localhost:3000/api/auth/callback/google](http://localhost:3000/api/auth/callback/google)`
+
+### 4. Connect Better Auth to Your Database
+
+Now, we need to connect Better Auth to our database so that it can store user information and session data.
+
+In my project, I’m using a **PostgreSQL database from Supabase** and **Drizzle ORM**. So, I need to install the Better Auth adapter that works with Drizzle.
+
+An adapter allows Better Auth to communicate with our database through the ORM.
+
+You can choose the appropriate adapter for your ORM and database by checking the Better Auth documentation for the supported databases and ORMs.
+
+Now, install the Better Auth Drizzle adapter using this command:
+
+```
+npm install @better-auth/drizzle-adapter
+```
+
+You may have already configured your database connection, created your schemas, and tested the connection. If that’s the case, you can keep that code as it is. There’s no need to change anything in your existing database connection just for Better Auth.
+
+For example, I already have this code to create a database instance and communicate with my database using Drizzle:
+
+```
+// src/db/index.ts
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+const client = postgres(process.env.DATABASE_URL!);
+export const db = drizzle(client);
+```
+
+### 5. Create Authentication Schemas for Storing User Data
+
+Now, we’ll create the schema for storing user data when someone signs in.
+
+First of all, we’ll create a Better Auth configuration file where we’ll define which authentication providers Better Auth will use, such as Google, GitHub, etc.
+
+So, create a file named `auth.ts` inside the `lib` folder and write the following code inside it:
+
+```
+// src/lib/auth.ts
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { db } from "@/db";
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+  }),
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+});
+```
+
+Here, I’m only choosing Google because that’s the only provider I’m using. You can choose whichever provider you want.
+
+Now, run this command:
+
+```
+npx auth@latest generate --adapter drizzle --dialect postgresql
+```
+
+Now, you might be wondering what this command will do.
+
+This command comes from the **Better Auth CLI**.
+
+It generates the schemas required for authentication and session management using Better Auth.
+
+Since I’m using **Drizzle ORM** and a **PostgreSQL database**, I’ve specified them in the command.
+
+This will generate four schemas for your database:
+
+1.  **User** — Stores information about registered users.
+2.  **Session** — Stores active login sessions.
+3.  **Account** — Stores linked login accounts, such as Google.
+4.  **Verification** — Stores verification tokens or codes.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*TgCn8G6oVY1jScm9eHEAkQ.png)
+
+Once the schemas are generated, go through them carefully and check for any errors or issues. If you find something you don’t understand, you can use AI or search online to find a solution.
+
+After that, generate the database migration and apply it to your database by running these commands:
+
+```
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+Now, check your `drizzle.config.ts` file to see whether it's using your newly created `auth-schema` file as its schema. If not, update the configuration accordingly, as this can cause errors.
+
+```
+import { defineConfig } from "drizzle-kit";
+export default defineConfig({
+  schema: "./src/db/**/*.ts", //taking all schemas from db folder
+  out: "./drizzle",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+```
+
+Also, check your Better Auth configuration file, import the `auth-schema` file, and provide it in the configuration.
+
+```
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { db } from "@/db/index"
+import * as schema from "../../db/auth-schema"; // importing schemas
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema, // schemas
+  }),
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+});
+```
+
+This step is very important, so don’t forget to do it!
+
+### 6. Create a Better Auth API Route in Next.js
+
+Better Auth’s Next.js API route will handle requests coming from the frontend, such as getting the session, signing in, and signing out. This helps the frontend communicate with Better Auth’s server.
+
+Create this file:
+
+```
+src/app/api/auth/[...all]/route.ts
+```
+
+If you don’t use a `src/` directory, create the route at `app/api/auth/[...all]/route.ts` instead.
+
+Now, write the following code inside the file:
+
+```
+import { auth } from "@/lib/auth";
+import { toNextJsHandler } from "better-auth/next-js";
+export const { GET, POST } = toNextJsHandler(auth);
+```
+
+Here, we’re importing `auth` from `lib/auth`, where we've written the configuration for sign-in, including which provider we're using, such as Google or GitHub. We've also added the required environment secrets there.
+
+Now, you might have noticed the `[...all]` route. So, what does that mean?
+
+It’s a **catch-all route** in Next.js. It allows Better Auth to handle its authentication endpoints through a single route handler.
+
+For example, this route handles requests for:
+
+*   `/api/auth/sign-in/social`
+*   `/api/auth/callback/google`
+*   `/api/auth/get-session`
+*   `/api/auth/sign-out`
+
+Now that we’ve created the authentication API route, we’ll create a **frontend client** that communicates with the server endpoint and provides methods for signing in, retrieving session state, and signing out.
+
+### 7. Create a Better Auth Client
+
+Now, we’ll create a Better Auth client that communicates with our API route and provides methods to help us **sign in, sign out, and retrieve sessions**.
+
+Create a file named `auth-client.ts` inside `src/lib/` and write the following code inside it.
+
+```
+import { createAuthClient } from "better-auth/react";
+export const authClient = createAuthClient();
+```
+
+Here, we’re importing `createAuthClient` from `better-auth/react` and exporting an instance of it.
+
+We’ll use this client to create a React component or a button that will help us **initiate the authentication process**.
+
+### 8. Create a Google Sign-In Button Component
+
+Now, let’s build a Google sign-in button to initiate the sign-in process.
+
+Create a component such as `src/components/google-sign-in.tsx` and write the following code inside that file:
+
+```
+"use client";
+import { authClient } from "@/lib/auth-client";
+export function GoogleSignIn() {
+  const handleGoogleSignIn = async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
+    });
+  };
+  return (
+    <button onClick={handleGoogleSignIn}>
+      Continue with Google
+    </button>
+  );
+}
+```
+
+This will use the code from `auth-client` in the `lib` folder to create a button that initiates sign-in through Google when clicked.
+
+Now, use this component on your login page.
+
+```
+import { GoogleSignIn } from "@/components/google-sign-in";
+export default function LoginPage() {
+  return (
+    <main>
+      <h1>Welcome to Vouch</h1>
+      <p>Sign in to continue.</p>
+      <GoogleSignIn />
+    </main>
+  );
+}
+```
+
+You can style the button however you want.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1174/format:webp/1*V8ekaLodOSurm0hJDXNb1w.png)
+
+### 9. What Happens When the Button Is Clicked?
+
+Now, let’s see what happens when we click the Google sign-in button and understand the whole flow.
+
+The flow goes like this:
+
+1.  `authClient.signIn.social()` starts the Google OAuth flow.
+2.  The browser is redirected to Google.
+3.  The user signs in and returns to Vouch.
+4.  Better Auth processes the callback and creates or retrieves the user.
+5.  Better Auth establishes a session and sets the appropriate cookie.
+6.  The user is redirected to `/dashboard`.
+
+The `callbackURL` is the destination after successful sign-in, not Google's OAuth callback URI.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*AoYS2Rz8vUuZx-wbW3ZmAg.png)
+
+### 10. Let’s See Session Management
+
+Now, let’s understand how session management works in our application.
+
+In Next.js, we can manage authentication using cookies or tokens. But for this project, I’m using the built-in **cookie-based authentication** provided by Better Auth.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*eILeroEGBQcCoo_BcYsk4g.png)
+
+Basically, when a user logs in, Better Auth creates a session and manages the session cookie for us. By default, it stores session information in the database, and the cookie contains a session identifier rather than a JWT access token.
+
+I’m not creating JWTs or handling all of this manually because, honestly, it would make things more complicated than necessary for this project. Better Auth already handles most of the work for us, so why not use it?
+
+Now, once a user logs in, the next thing we need to figure out is how to know which user is currently signed in.
+
+To understand this, let’s create a simple React component and use it to check the current session and display the logged-in user’s information.
+
+Let’s see how we can do that in our Next.js application.
+
+For example, create a small component to show the user’s profile and write the following code inside it:
+
+```
+"use client";
+import { authClient } from "@/lib/auth-client";
+export function UserProfile() {
+  const { data: session, isPending } =
+    authClient.useSession();
+  if (isPending) {
+    return <p>Loading...</p>;
+  }
+  if (!session) {
+    return <p>You are not signed in.</p>;
+  }
+  return (
+    <div>
+      <p>Welcome, {session.user.name}</p>
+      <p>{session.user.email}</p>
+      <button
+        onClick={() => authClient.signOut()}
+      >
+        Sign out
+      </button>
+    </div>
+  );
+}
+```
+
+Here, the `useSession()` hook provided by the `authClient` instance exposes the current session state to React. When the user signs out, the client can update the session state accordingly.
+
+Now, let’s see what’s inside a session.
+
+Better Auth’s session contains data similar to this:
+
+```
+{
+  user: {
+    id: "user-id",
+    name: "Example User",
+    email: "user@example.com"
+  },
+  session: {
+    id: "session-id",
+    expiresAt: "..."
+  }
+}
+```
+
+Now, let’s look at the main thing: how to check whether someone is authorized and prevent them from accessing or doing certain things.
+
+Let’s take an example of protecting the dashboard from unauthorized users.
+
+Create a server-side authentication helper function at `src/lib/auth-session.ts` and write the following code inside it:
+
+```
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+export async function requireUser() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session) {
+    redirect("/login");
+  }
+  return session.user;
+}
+```
+
+Then, use this function in your dashboard page:
+
+```
+import { requireUser } from "@/lib/auth-session";
+export default async function DashboardPage() {
+  const user = await requireUser();
+  return (
+    <main>
+      <h1>Welcome, {user.name}</h1>
+      <p>{user.email}</p>
+    </main>
+  );
+}
+```
+
+Here, the process is pretty straightforward:
+
+*   First, Next.js reads the incoming request headers, which include the cookies sent by the browser.
+*   Better Auth uses those cookies to check whether the user has a valid session.
+*   If the session is missing or invalid, we redirect the user to the login page.
+*   Otherwise, the server renders the dashboard for the authenticated user.
+
+And that’s it! We’ve covered the basic flow of sign-in and authentication. We can also use this approach to protect pages that should only be accessible to logged-in users.
+
+But there’s one more thing to keep in mind. Protecting a page doesn’t automatically protect your API routes or the data inside them.
+
+For example, if we’re fetching some posts of a user in a project, we should check the user’s session on the server and fetch only the posts that belong to that user. This way, one user can’t access or modify another user’s data just by changing an ID in the request.
+
+![captionless image](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*YUklAVep7uyDPiIXaJG0ng.png)
+
+So, whenever we’re working with private data in an API route, we need to verify the session and make sure the user has permission to access the requested resource.
+
+So, that’s pretty much it! We’ve seen how to set up Better Auth with Google sign-in in a Next.js application, manage sessions, and protect our dashboard and private API routes.
+
+The best part is that we don’t have to handle everything ourselves. Better Auth takes care of most of the authentication flow, so we can focus on building the actual features of our application.
+
+I hope this guide helped you understand how Better Auth works and how you can use it in your own projects. If you’re building a Next.js application and need authentication, I’d definitely recommend giving it a try.
+
+Thanks for reading, and happy coding!
